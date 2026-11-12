@@ -31,7 +31,7 @@ import {
   checkLocationLikeAchievements,
 } from "../data/achievements.js";
 import {upload} from "../middleware/upload.js"
-import {uploadMultipleImages} from "../utils/imageUpload.js"
+import {saveMultipleImages} from "../utils/localImageUpload.js"
 import { userHasVisited, userVisited } from "../data/users.js";
 
 const router = Router();
@@ -163,7 +163,7 @@ router
         lng: req.body.lng,
       };
 
-      const pictures = await uploadMultipleImages(req.files, "locations");
+      const pictures = await saveMultipleImages(req.files, "locations");
       const tags = parseTags(req.body.tags);
 
       const locationId = await addLocation(
@@ -431,7 +431,7 @@ router.post("/:id/reviews", middleware.getuser, upload.array("reviewPics", 5),as
       "safetyRating",
     );
 
-    const pictures = await uploadMultipleImages(req.files, "reviews");
+    const pictures = await saveMultipleImages(req.files, "reviews");
 
     /*
     TODO:

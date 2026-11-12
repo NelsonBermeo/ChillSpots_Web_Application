@@ -5,7 +5,7 @@ import { addUser, checkUser } from '../data/users.js';
 import { checkRegisterAchievements } from '../data/achievements.js';
 const router = Router();
 import {upload} from "../middleware/upload.js"
-import {uploadImage} from "../utils/imageUpload.js"
+import {saveImage} from "../utils/localImageUpload.js"
 
 router.route('/').get(async (req, res) => {
     try {
@@ -139,7 +139,7 @@ router
         try {
             let profilePicUrl = "/public/images/default-profile.jpg";
             if(req.file){
-                profilePicUrl = await uploadImage(req.file, "users")
+                profilePicUrl = await saveImage(req.file, "users")
             }
             let success = await addUser(
                 req.body.firstName,

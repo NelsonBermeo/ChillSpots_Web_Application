@@ -210,7 +210,10 @@ const updateUser = async (
         usernameInput = usernameInput.toLowerCase()
         check_length(usernameInput, 3, 20)
         check_chars_2(usernameInput)
-        let usernameUser = await userCollection.findOne({ username: usernameInput })
+        let usernameUser = await userCollection.findOne({
+            username: usernameInput,
+            _id: { $ne: new ObjectId(id) }
+        })
         if (usernameUser){
             // Username is taken
             throw "Error: Username in use."
@@ -219,11 +222,15 @@ const updateUser = async (
     }
     if (emailInput){
         emailInput = checkString(emailInput)
+        emailInput = emailInput.toLowerCase()
         check_length(emailInput, 3, 100)
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!(emailRegex.test(emailInput))){
             throw "Error: Invalid email address" }
-        let emailUser = await userCollection.findOne({ email: emailInput })
+        let emailUser = await userCollection.findOne({
+            email: emailInput,
+            _id: { $ne: new ObjectId(id) }
+        })
         if (emailUser){
             // Username is taken
             throw "Error: Email in use."
@@ -231,12 +238,7 @@ const updateUser = async (
         updated_fields.email = emailInput
     }
     if (profile_picture){
-        //Fix 
-        if (profile_picture === undefined || profile_picture === null || profile_picture.trim() === "" ){
-            throw "Error: pfp"
-        } else {
-            updated_fields.profile_picture = profile_picture.trim()
-        }
+        updated_fields.profile_picture = checkString(profile_picture, 'profile picture')
     }
     if (age) {
         age = checkNumericString(age)

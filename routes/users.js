@@ -2,8 +2,10 @@ import {Router} from 'express';
 import xss from 'xss';
 import {checkId, checkString, check_length} from '../validation.js';
 import {middleware} from '../middleware/auth.js';
-import {getUserById} from '../data/users.js';
+import {getUserById, updateUser} from '../data/users.js';
 import { getLocationById } from '../data/locations.js';
+import {upload} from '../middleware/upload.js';
+import {saveImage} from '../utils/localImageUpload.js';
 
 const router = Router();
 
@@ -17,7 +19,6 @@ TODO:
   - getUserVisitedLocations(userId)
   - addFriend(userId, friendId)
   - createUserList(userId, listName, description)
-  - updateUser profile handling if POST /profile becomes functional
 */
 
 //renders a temporary "Not Implemented" error page for unfinished route functionality
@@ -90,33 +91,40 @@ router.get('/profile', middleware.getuser, async (req, res) => {
 });
 
 //updates the currently logged-in user's profile information
-router.post('/profile', middleware.getuser, async (req, res) => {
+router.post('/profile', middleware.getuser, upload.single('newProfilePic'), async (req, res) => {
   try {
     const userId = checkId(req.session.member._id, 'userId');
+    const body = req.body || {};
+    const readField = (field) => body[field] === undefined
+      ? undefined
+      : xss(checkString(body[field], field));
 
-    return notImplemented(
-      res,
-      'Requires updateUser profile form handling implementation in data/users.js.'
-    );
+    if (body.newPassword || body.confirmNewPassword) {
+      throw 'Password changes are not implemented yet. Leave the password fields blank to update your profile.';
+    }
 
-    /*
-    const firstName = req.body.firstName ? checkString(xss(req.body.firstName), 'firstName') : undefined;
-    const lastName = req.body.lastName ? checkString(xss(req.body.lastName), 'lastName') : undefined;
-    const username = req.body.username ? checkString(xss(req.body.username), 'username') : undefined;
-    const email = req.body.email ? checkString(xss(req.body.email), 'email') : undefined;
-    const profilePic = req.body.profilePic ? xss(req.body.profilePic) : undefined;
-    const age = req.body.age;
+    const firstName = readField('firstName');
+    const lastName = readField('lastName');
+    const username = readField('username');
+    const email = readField('email');
+    const profilePic = req.file ? await saveImage(req.file, 'users') : undefined;
 
-    await updateUser(userId, firstName, lastName, username, email, profilePic, age);
+    const updatedUser = await updateUser(userId, firstName, lastName, username, email, profilePic);
+    req.session.member = {...updatedUser, _id: userId};
 
     return res.redirect('/user/profile');
-    */
   } catch (e) {
     return res.status(400).render('error', {
       title: 'Error',
       error: e.toString()
     });
   }
+}, (error, req, res, next) => {
+  // Handle multipart parsing and file-type errors on the same error page.
+  return res.status(400).render('error', {
+    title: 'Error',
+    error: error.toString()
+  });
 });
 
 //adds another user to the currently logged-in user's friends list
